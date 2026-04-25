@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+<meta charset="UTF-8">
+<title>Gestão Escolar - Risco de Evasão</title>
+
+<style>
+body {
+    font-family: Arial, sans-serif;
+    background: #f4f6f9;
+    margin: 0;
+}
+
+/* HEADER */
+header {
+    background: #1e3a8a;
+    color: white;
+    padding: 20px;
+    text-align: center;
+}
+
+/* CARDS */
+.cards {
+    display: flex;
+    justify-content: space-around;
+    padding: 20px;
+    gap: 10px;
+}
+
+.card {
+    background: white;
+    padding: 20px;
+    border-radius: 10px;
+    width: 30%;
+    text-align: center;
+    box-shadow: 0px 4px 10px rgba(0,0,0,0.1);
+}
+
+.card h2 {
+    margin: 0;
+    font-size: 28px;
+}
+
+/* TABELA */
+.container {
+    padding: 20px;
+}
+
+table {
+    width: 100%;
+    border-collapse: collapse;
+    background: white;
+    border-radius: 10px;
+    overflow: hidden;
+}
+
+th {
+    background: #1e3a8a;
+    color: white;
+    padding: 12px;
+}
+
+td {
+    padding: 10px;
+    text-align: center;
+}
+
+tr:nth-child(even) {
+    background: #f2f2f2;
+}
+
+/* CORES DE RISCO */
+.baixo {
+    color: green;
+    font-weight: bold;
+}
+
+.medio {
+    color: orange;
+    font-weight: bold;
+}
+
+.alto {
+    color: red;
+    font-weight: bold;
+}
+
+/* BOTÃO */
+button {
+    padding: 6px 10px;
+    border: none;
+    border-radius: 5px;
+    background: #2563eb;
+    color: white;
+    cursor: pointer;
+}
+
+button:hover {
+    background: #1e40af;
+}
+</style>
+</head>
+
+<body>
+
+<header>
+    <h1>Sistema de Gestão Escolar</h1>
+    <p>Monitoramento de Risco de Evasão</p>
+</header>
+
+<!-- CARDS -->
+<div class="cards">
+    <div class="card">
+        <h3>Total de Alunos</h3>
+        <h2 id="total"></h2>
+    </div>
+    <div class="card">
+        <h3>Alto Risco</h3>
+        <h2 id="alto"></h2>
+    </div>
+    <div class="card">
+        <h3>Risco Médio</h3>
+        <h2 id="medio"></h2>
+    </div>
+</div>
+
+<!-- TABELA -->
+<div class="container">
+<table>
+    <thead>
+        <tr>
+            <th>Nome</th>
+            <th>Sobrenome</th>
+            <th>Risco (%)</th>
+            <th>Nível</th>
+            <th>Plano de Ação</th>
+        </tr>
+    </thead>
+    <tbody id="tabela"></tbody>
+</table>
+</div>
+
+<script>
+
+fetch("http://127.0.0.1:5000/alunos")
+.then(res => res.json())
+.then(data => {
+
+    let tabela = document.getElementById("tabela");
+
+    let total = data.length;
+    let alto = 0;
+    let medio = 0;
+
+    data.forEach(aluno => {
+
+        let classe = "";
+
+        if(aluno.nivel === "Alto") {
+            classe = "alto";
+            alto++;
+        } else if(aluno.nivel === "Médio") {
+            classe = "medio";
+            medio++;
+        } else {
+            classe = "baixo";
+        }
+
+        let linha = `
+            <tr>
+                <td>${aluno.Nome}</td>
+                <td>${aluno.Sobrenome}</td>
+                <td>${aluno.risco_percentual.toFixed(2)}%</td>
+                <td class="${classe}">${aluno.nivel}</td>
+                <td>${aluno.plano}</td>
+            </tr>
+        `;
+
+        tabela.innerHTML += linha;
+    });
+
+    // atualizar cards
+    document.getElementById("total").innerText = total;
+    document.getElementById("alto").innerText = alto;
+    document.getElementById("medio").innerText = medio;
+});
+
+</script>
+
+</body>
+</html>
