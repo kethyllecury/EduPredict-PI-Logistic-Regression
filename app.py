@@ -83,22 +83,51 @@ df["nivel"] = df["risco_percentual"].apply(classificar)
 
 def plano(row):
     p = []
-
     if row["Faltas_Consecutivas"] > 5:
         p.append("Contato com responsável")
-
     if row["Entrega_Atividades"] < 50:
         p.append("Reforço escolar")
-
     if row["Participacao"] == 0:
         p.append("Aulas interativas")
-
+    if row["Percentual_Presenca"] < 75:
+        p.append("Plano de frequência")
+    if row["Reprovacoes_Anteriores"] >= 2:
+        p.append("Plano pedagógico individual")
     if not p:
         p.append("Monitoramento")
-
     return " | ".join(p)
 
 df["plano"] = df.apply(plano, axis=1)
+
+# ----------------------------
+# TEMPO DE RECUPERAÇÃO
+# ----------------------------
+
+def tempo_recuperacao(row):
+    if row["nivel"] == "Alto":
+        return "3 a 6 meses"
+    elif row["nivel"] == "Médio":
+        return "1 a 3 meses"
+    else:
+        return "Monitoramento leve"
+
+df["tempo_recuperacao"] = df.apply(tempo_recuperacao, axis=1)
+
+# ----------------------------
+# PROFESSOR INDICADO
+# ----------------------------
+
+def professor_indicado(row):
+    if row["Participacao"] == 0:
+        return "Prof. Engajador"
+    elif row["Nota"] < 5:
+        return "Prof. Técnico"
+    elif row["Faltas_Consecutivas"] > 5:
+        return "Prof. Tutor"
+    else:
+        return "Prof. Regular"
+
+df["professor_indicado"] = df.apply(professor_indicado, axis=1)
 
 # ----------------------------
 # API
@@ -108,15 +137,37 @@ df["plano"] = df.apply(plano, axis=1)
 def index():
     return send_from_directory(".", "index.html")
 
+def to_safe_records(frame):
+    return frame.where(pd.notnull(frame), None).to_dict(orient="records")
+
 @app.route("/alunos")
 def alunos():
-    return jsonify(df[[
-        "Nome",
-        "Sobrenome",
-        "risco_percentual",
-        "nivel",
-        "plano"
-    ]].to_dict(orient="records"))
+    cols = [
+        "Nome", "Sobrenome", "risco_percentual", "nivel", "plano",
+        "Nota", "Faltas", "Percentual_Presenca", "Faltas_Consecutivas",
+        "Entrega_Atividades", "tempo_recuperacao", "professor_indicado"
+    ]
+    result = df[cols].sort_values("risco_percentual", ascending=False)
+    return jsonify(to_safe_records(result))
+
+@app.route("/stats")
+def stats():
+    contagem = df["nivel"].value_counts().to_dict()
+    top10 = to_safe_records(
+        df.nlargest(10, "risco_percentual")[["Nome", "Sobrenome", "risco_percentual"]]
+    )
+    return jsonify({
+        "total": len(df),
+        "por_nivel": {
+            "Alto": int(contagem.get("Alto", 0)),
+            "Medio": int(contagem.get("Médio", 0)),
+            "Baixo": int(contagem.get("Baixo", 0)),
+        },
+        "media_nota": round(float(df["Nota"].mean()), 1),
+        "media_presenca": round(float(df["Percentual_Presenca"].mean()), 1),
+        "media_faltas": round(float(df["Faltas"].mean()), 1),
+        "top10_risco": top10,
+    })
 
 # ----------------------------
 # RODAR

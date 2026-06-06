@@ -1,190 +1,502 @@
 <!DOCTYPE html>
 <html lang="pt-br">
 <head>
-<meta charset="UTF-8">
-<title>Gestão Escolar - Risco de Evasão</title>
-
-<style>
-body {
-    font-family: Arial, sans-serif;
-    background: #f4f6f9;
-    margin: 0;
-}
-
-/* HEADER */
-header {
-    background: #1e3a8a;
-    color: white;
-    padding: 20px;
-    text-align: center;
-}
-
-/* CARDS */
-.cards {
-    display: flex;
-    justify-content: space-around;
-    padding: 20px;
-    gap: 10px;
-}
-
-.card {
-    background: white;
-    padding: 20px;
-    border-radius: 10px;
-    width: 30%;
-    text-align: center;
-    box-shadow: 0px 4px 10px rgba(0,0,0,0.1);
-}
-
-.card h2 {
-    margin: 0;
-    font-size: 28px;
-}
-
-/* TABELA */
-.container {
-    padding: 20px;
-}
-
-table {
-    width: 100%;
-    border-collapse: collapse;
-    background: white;
-    border-radius: 10px;
-    overflow: hidden;
-}
-
-th {
-    background: #1e3a8a;
-    color: white;
-    padding: 12px;
-}
-
-td {
-    padding: 10px;
-    text-align: center;
-}
-
-tr:nth-child(even) {
-    background: #f2f2f2;
-}
-
-/* CORES DE RISCO */
-.baixo {
-    color: green;
-    font-weight: bold;
-}
-
-.medio {
-    color: orange;
-    font-weight: bold;
-}
-
-.alto {
-    color: red;
-    font-weight: bold;
-}
-
-/* BOTÃO */
-button {
-    padding: 6px 10px;
-    border: none;
-    border-radius: 5px;
-    background: #2563eb;
-    color: white;
-    cursor: pointer;
-}
-
-button:hover {
-    background: #1e40af;
-}
-</style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>EduPredict — Risco de Evasão Escolar</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+  <style>
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: #f1f5f9; }
+    ::-webkit-scrollbar-thumb { background: #94a3b8; border-radius: 3px; }
+    .skeleton {
+      background: linear-gradient(90deg, #e2e8f0 25%, #f8fafc 50%, #e2e8f0 75%);
+      background-size: 200% 100%;
+      animation: shimmer 1.5s infinite;
+      border-radius: 6px;
+    }
+    @keyframes shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
+    .fade-in { animation: fadeIn 0.4s ease-in; }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+  </style>
 </head>
 
-<body>
+<body class="bg-slate-100 min-h-screen font-sans">
 
-<header>
-    <h1>Sistema de Gestão Escolar</h1>
-    <p>Monitoramento de Risco de Evasão</p>
-</header>
+  <!-- HEADER -->
+  <header class="bg-gradient-to-r from-blue-950 to-blue-800 text-white shadow-xl">
+    <div class="max-w-7xl mx-auto px-6 py-5 flex items-center justify-between">
+      <div class="flex items-center gap-4">
+        <div class="bg-white/15 rounded-2xl p-3">
+          <i class="fa-solid fa-graduation-cap text-2xl"></i>
+        </div>
+        <div>
+          <h1 class="text-xl font-bold tracking-tight leading-none">EduPredict</h1>
+          <p class="text-blue-300 text-sm mt-0.5">Monitoramento de Risco de Evasão Escolar</p>
+        </div>
+      </div>
+      <div class="flex items-center gap-3">
+        <span class="bg-emerald-400/20 border border-emerald-400/40 text-emerald-300 text-xs font-medium px-3 py-1.5 rounded-full flex items-center gap-1.5">
+          <span class="w-1.5 h-1.5 bg-emerald-400 rounded-full animate-pulse"></span>
+          Modelo Ativo — Regressão Logística
+        </span>
+        <span class="text-blue-300 text-xs hidden sm:block" id="ultima-atualizacao"></span>
+      </div>
+    </div>
+  </header>
 
-<!-- CARDS -->
-<div class="cards">
-    <div class="card">
-        <h3>Total de Alunos</h3>
-        <h2 id="total"></h2>
-    </div>
-    <div class="card">
-        <h3>Alto Risco</h3>
-        <h2 id="alto"></h2>
-    </div>
-    <div class="card">
-        <h3>Risco Médio</h3>
-        <h2 id="medio"></h2>
-    </div>
-</div>
+  <main class="max-w-7xl mx-auto px-6 py-8 space-y-6">
 
-<!-- TABELA -->
-<div class="container">
-<table>
-    <thead>
-        <tr>
-            <th>Nome</th>
-            <th>Sobrenome</th>
-            <th>Risco (%)</th>
-            <th>Nível</th>
-            <th>Plano de Ação</th>
-        </tr>
-    </thead>
-    <tbody id="tabela"></tbody>
-</table>
-</div>
+    <!-- KPI CARDS -->
+    <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
+
+      <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-5 fade-in">
+        <div class="flex items-start justify-between mb-3">
+          <div class="bg-blue-100 text-blue-600 p-2.5 rounded-xl">
+            <i class="fa-solid fa-users text-base"></i>
+          </div>
+          <span class="text-xs text-slate-400 font-medium">Total</span>
+        </div>
+        <p class="text-3xl font-extrabold text-slate-800 leading-none" id="card-total">
+          <span class="skeleton inline-block w-16 h-8">&nbsp;</span>
+        </p>
+        <p class="text-slate-500 text-xs mt-2">Alunos monitorados</p>
+      </div>
+
+      <div class="bg-white rounded-2xl shadow-sm border border-slate-200 border-l-4 border-l-red-500 p-5 fade-in">
+        <div class="flex items-start justify-between mb-3">
+          <div class="bg-red-100 text-red-500 p-2.5 rounded-xl">
+            <i class="fa-solid fa-triangle-exclamation text-base"></i>
+          </div>
+          <span class="text-xs text-red-400 font-medium">Alto Risco</span>
+        </div>
+        <p class="text-3xl font-extrabold text-red-600 leading-none" id="card-alto">
+          <span class="skeleton inline-block w-12 h-8">&nbsp;</span>
+        </p>
+        <p class="text-slate-500 text-xs mt-2" id="pct-alto">Risco &gt; 70%</p>
+      </div>
+
+      <div class="bg-white rounded-2xl shadow-sm border border-slate-200 border-l-4 border-l-amber-400 p-5 fade-in">
+        <div class="flex items-start justify-between mb-3">
+          <div class="bg-amber-100 text-amber-500 p-2.5 rounded-xl">
+            <i class="fa-solid fa-circle-exclamation text-base"></i>
+          </div>
+          <span class="text-xs text-amber-500 font-medium">Médio Risco</span>
+        </div>
+        <p class="text-3xl font-extrabold text-amber-500 leading-none" id="card-medio">
+          <span class="skeleton inline-block w-12 h-8">&nbsp;</span>
+        </p>
+        <p class="text-slate-500 text-xs mt-2" id="pct-medio">Risco 30–70%</p>
+      </div>
+
+      <div class="bg-white rounded-2xl shadow-sm border border-slate-200 border-l-4 border-l-emerald-500 p-5 fade-in">
+        <div class="flex items-start justify-between mb-3">
+          <div class="bg-emerald-100 text-emerald-600 p-2.5 rounded-xl">
+            <i class="fa-solid fa-circle-check text-base"></i>
+          </div>
+          <span class="text-xs text-emerald-600 font-medium">Baixo Risco</span>
+        </div>
+        <p class="text-3xl font-extrabold text-emerald-600 leading-none" id="card-baixo">
+          <span class="skeleton inline-block w-12 h-8">&nbsp;</span>
+        </p>
+        <p class="text-slate-500 text-xs mt-2" id="pct-baixo">Risco &lt; 30%</p>
+      </div>
+    </div>
+
+    <!-- CHARTS -->
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
+
+      <!-- Donut -->
+      <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-6">
+        <h2 class="text-sm font-semibold text-slate-700 mb-1">Distribuição por Risco</h2>
+        <p class="text-xs text-slate-400 mb-5">Proporção entre os níveis</p>
+        <div class="relative h-48">
+          <canvas id="donutChart"></canvas>
+        </div>
+        <div class="flex justify-center gap-5 mt-4">
+          <span class="flex items-center gap-1.5 text-xs text-slate-600">
+            <span class="w-2.5 h-2.5 rounded-full bg-red-500 flex-shrink-0"></span> Alto
+          </span>
+          <span class="flex items-center gap-1.5 text-xs text-slate-600">
+            <span class="w-2.5 h-2.5 rounded-full bg-amber-400 flex-shrink-0"></span> Médio
+          </span>
+          <span class="flex items-center gap-1.5 text-xs text-slate-600">
+            <span class="w-2.5 h-2.5 rounded-full bg-emerald-500 flex-shrink-0"></span> Baixo
+          </span>
+        </div>
+      </div>
+
+      <!-- Bar Top 10 -->
+      <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-6 lg:col-span-2">
+        <h2 class="text-sm font-semibold text-slate-700 mb-1">Top 10 — Maior Risco</h2>
+        <p class="text-xs text-slate-400 mb-5">Alunos com maior probabilidade de evasão</p>
+        <div class="relative h-52">
+          <canvas id="barChart"></canvas>
+        </div>
+      </div>
+    </div>
+
+    <!-- STATS -->
+    <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+      <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-5 flex items-center gap-4">
+        <div class="bg-indigo-100 text-indigo-600 p-3 rounded-xl flex-shrink-0">
+          <i class="fa-solid fa-star text-lg"></i>
+        </div>
+        <div>
+          <p class="text-xs text-slate-500 mb-0.5">Média de Notas</p>
+          <p class="text-2xl font-bold text-slate-800" id="stat-nota">—</p>
+        </div>
+      </div>
+      <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-5 flex items-center gap-4">
+        <div class="bg-cyan-100 text-cyan-600 p-3 rounded-xl flex-shrink-0">
+          <i class="fa-solid fa-calendar-check text-lg"></i>
+        </div>
+        <div>
+          <p class="text-xs text-slate-500 mb-0.5">Presença Média</p>
+          <p class="text-2xl font-bold text-slate-800" id="stat-presenca">—</p>
+        </div>
+      </div>
+      <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-5 flex items-center gap-4">
+        <div class="bg-rose-100 text-rose-600 p-3 rounded-xl flex-shrink-0">
+          <i class="fa-solid fa-calendar-xmark text-lg"></i>
+        </div>
+        <div>
+          <p class="text-xs text-slate-500 mb-0.5">Média de Faltas</p>
+          <p class="text-2xl font-bold text-slate-800" id="stat-faltas">—</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- TABLE -->
+    <div class="bg-white rounded-2xl shadow-sm border border-slate-200">
+      <!-- Table header / controls -->
+      <div class="p-5 border-b border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+          <h2 class="text-sm font-semibold text-slate-700">Lista de Alunos</h2>
+          <p class="text-xs text-slate-400 mt-0.5" id="table-subtitle">Carregando...</p>
+        </div>
+        <div class="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
+          <!-- Search -->
+          <div class="relative">
+            <i class="fa-solid fa-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-xs"></i>
+            <input id="busca" type="text" placeholder="Buscar aluno..."
+              class="pl-8 pr-4 py-2 text-sm border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 w-full sm:w-52 transition-all" />
+          </div>
+          <!-- Filter buttons -->
+          <div class="flex gap-1.5">
+            <button onclick="setFiltro('Todos')" id="btn-todos"
+              class="px-3 py-2 text-xs font-semibold rounded-xl border transition-all bg-blue-600 text-white border-blue-600">
+              Todos
+            </button>
+            <button onclick="setFiltro('Alto')" id="btn-alto"
+              class="px-3 py-2 text-xs font-semibold rounded-xl border transition-all border-slate-200 text-slate-600 hover:border-red-300 hover:text-red-600">
+              Alto
+            </button>
+            <button onclick="setFiltro('Médio')" id="btn-medio"
+              class="px-3 py-2 text-xs font-semibold rounded-xl border transition-all border-slate-200 text-slate-600 hover:border-amber-300 hover:text-amber-600">
+              Médio
+            </button>
+            <button onclick="setFiltro('Baixo')" id="btn-baixo"
+              class="px-3 py-2 text-xs font-semibold rounded-xl border transition-all border-slate-200 text-slate-600 hover:border-emerald-300 hover:text-emerald-600">
+              Baixo
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Table body -->
+      <div class="overflow-x-auto">
+        <table class="w-full text-sm">
+          <thead>
+            <tr class="bg-slate-50 text-slate-500 text-xs font-semibold uppercase tracking-wide">
+              <th class="text-left px-5 py-3.5 whitespace-nowrap">Aluno</th>
+              <th class="text-left px-5 py-3.5 whitespace-nowrap">Risco</th>
+              <th class="text-left px-5 py-3.5 whitespace-nowrap">Nível</th>
+              <th class="text-left px-5 py-3.5 whitespace-nowrap">Nota</th>
+              <th class="text-left px-5 py-3.5 whitespace-nowrap">Presença</th>
+              <th class="text-left px-5 py-3.5 whitespace-nowrap">Faltas</th>
+              <th class="text-left px-5 py-3.5 whitespace-nowrap">Plano de Ação</th>
+              <th class="text-left px-5 py-3.5 whitespace-nowrap">Professor</th>
+              <th class="text-left px-5 py-3.5 whitespace-nowrap">Recuperação</th>
+            </tr>
+          </thead>
+          <tbody id="tabela" class="divide-y divide-slate-100"></tbody>
+        </table>
+      </div>
+
+      <!-- Pagination -->
+      <div class="px-5 py-4 border-t border-slate-100 flex items-center justify-between">
+        <span class="text-xs text-slate-500" id="pagination-info"></span>
+        <div class="flex items-center gap-2">
+          <button onclick="changePage(-1)" id="btn-prev"
+            class="w-8 h-8 flex items-center justify-center rounded-lg border border-slate-200 hover:bg-slate-50 text-slate-500 disabled:opacity-40 disabled:cursor-not-allowed transition-all">
+            <i class="fa-solid fa-chevron-left text-xs"></i>
+          </button>
+          <span class="text-xs font-medium text-slate-600 px-1" id="page-indicator"></span>
+          <button onclick="changePage(1)" id="btn-next"
+            class="w-8 h-8 flex items-center justify-center rounded-lg border border-slate-200 hover:bg-slate-50 text-slate-500 disabled:opacity-40 disabled:cursor-not-allowed transition-all">
+            <i class="fa-solid fa-chevron-right text-xs"></i>
+          </button>
+        </div>
+      </div>
+    </div>
+
+  </main>
+
+  <footer class="text-center py-6 text-slate-400 text-xs">
+    EduPredict &nbsp;•&nbsp; Regressão Logística &nbsp;•&nbsp; Scikit-learn
+  </footer>
 
 <script>
+// ── State ──────────────────────────────────────────────────────────────────
+let allData = [];
+let filteredData = [];
+let filtroAtivo = 'Todos';
+let currentPage = 1;
+const PER_PAGE = 25;
 
-fetch("/alunos")
-.then(res => res.json())
-.then(data => {
+// ── Helpers ────────────────────────────────────────────────────────────────
+function badge(nivel) {
+  const styles = {
+    'Alto':  'bg-red-100 text-red-700 border border-red-200',
+    'Médio': 'bg-amber-100 text-amber-700 border border-amber-200',
+    'Baixo': 'bg-emerald-100 text-emerald-700 border border-emerald-200',
+  };
+  return `<span class="px-2.5 py-0.5 rounded-full text-xs font-semibold ${styles[nivel] || ''}">${nivel}</span>`;
+}
 
-    let tabela = document.getElementById("tabela");
+function riscoBar(pct) {
+  const cor = pct >= 70 ? 'bg-red-500' : pct >= 30 ? 'bg-amber-400' : 'bg-emerald-500';
+  return `
+    <div class="flex items-center gap-2 min-w-[130px]">
+      <div class="flex-1 h-1.5 bg-slate-100 rounded-full overflow-hidden">
+        <div class="${cor} h-full rounded-full transition-all" style="width:${Math.min(pct,100).toFixed(1)}%"></div>
+      </div>
+      <span class="text-xs font-semibold text-slate-700 w-11 text-right tabular-nums">${pct.toFixed(1)}%</span>
+    </div>`;
+}
 
-    let total = data.length;
-    let alto = 0;
-    let medio = 0;
+function notaColor(nota) {
+  if (nota < 5) return 'text-red-600 font-semibold';
+  if (nota < 7) return 'text-amber-600';
+  return 'text-emerald-700';
+}
 
-    data.forEach(aluno => {
+// ── Render table ───────────────────────────────────────────────────────────
+function renderTable() {
+  const start = (currentPage - 1) * PER_PAGE;
+  const page  = filteredData.slice(start, start + PER_PAGE);
+  const tbody = document.getElementById('tabela');
 
-        let classe = "";
+  if (!page.length) {
+    tbody.innerHTML = `<tr><td colspan="9" class="text-center py-16 text-slate-400 text-sm">
+      <i class="fa-regular fa-face-frown text-2xl block mb-2"></i>Nenhum aluno encontrado.
+    </td></tr>`;
+    updatePagination();
+    return;
+  }
 
-        if(aluno.nivel === "Alto") {
-            classe = "alto";
-            alto++;
-        } else if(aluno.nivel === "Médio") {
-            classe = "medio";
-            medio++;
-        } else {
-            classe = "baixo";
+  tbody.innerHTML = page.map(a => {
+    const nota  = a.Nota != null ? Number(a.Nota).toFixed(1) : '—';
+    const pres  = a.Percentual_Presenca != null ? Number(a.Percentual_Presenca).toFixed(1) + '%' : '—';
+    const faltas = a.Faltas != null ? a.Faltas : '—';
+    return `
+    <tr class="hover:bg-slate-50/80 transition-colors">
+      <td class="px-5 py-3 font-medium text-slate-800 whitespace-nowrap">${a.Nome} ${a.Sobrenome}</td>
+      <td class="px-5 py-3">${riscoBar(a.risco_percentual)}</td>
+      <td class="px-5 py-3">${badge(a.nivel)}</td>
+      <td class="px-5 py-3 ${notaColor(a.Nota)} tabular-nums">${nota}</td>
+      <td class="px-5 py-3 text-slate-600 tabular-nums">${pres}</td>
+      <td class="px-5 py-3 text-slate-600 tabular-nums">${faltas}</td>
+      <td class="px-5 py-3 text-slate-500 text-xs max-w-[200px] truncate" title="${a.plano}">${a.plano}</td>
+      <td class="px-5 py-3 text-slate-500 text-xs whitespace-nowrap">${a.professor_indicado ?? '—'}</td>
+      <td class="px-5 py-3 text-slate-500 text-xs whitespace-nowrap">${a.tempo_recuperacao ?? '—'}</td>
+    </tr>`;
+  }).join('');
+
+  updatePagination();
+}
+
+function updatePagination() {
+  const total      = filteredData.length;
+  const totalPages = Math.max(1, Math.ceil(total / PER_PAGE));
+  const start      = (currentPage - 1) * PER_PAGE;
+
+  document.getElementById('pagination-info').textContent =
+    total ? `Exibindo ${start + 1}–${Math.min(start + PER_PAGE, total)} de ${total} alunos` : '0 alunos';
+  document.getElementById('page-indicator').textContent = `${currentPage} / ${totalPages}`;
+  document.getElementById('btn-prev').disabled = currentPage === 1;
+  document.getElementById('btn-next').disabled = currentPage >= totalPages;
+}
+
+// ── Filter & Search ────────────────────────────────────────────────────────
+let searchTerm = '';
+
+function applyFilters() {
+  currentPage = 1;
+  filteredData = allData.filter(a => {
+    const matchNivel = filtroAtivo === 'Todos' || a.nivel === filtroAtivo;
+    const matchBusca = !searchTerm ||
+      (a.Nome + ' ' + a.Sobrenome).toLowerCase().includes(searchTerm.toLowerCase());
+    return matchNivel && matchBusca;
+  });
+  document.getElementById('table-subtitle').textContent =
+    `${filteredData.length} alunos encontrados (ordenados por maior risco)`;
+  renderTable();
+}
+
+function setFiltro(nivel) {
+  filtroAtivo = nivel;
+  const btns = {
+    'Todos': { id: 'btn-todos', cls: 'bg-blue-600 text-white border-blue-600' },
+    'Alto':  { id: 'btn-alto',  cls: 'bg-red-500 text-white border-red-500' },
+    'Médio': { id: 'btn-medio', cls: 'bg-amber-400 text-white border-amber-400' },
+    'Baixo': { id: 'btn-baixo', cls: 'bg-emerald-500 text-white border-emerald-500' },
+  };
+  Object.entries(btns).forEach(([key, { id, cls }]) => {
+    const btn = document.getElementById(id);
+    btn.className = 'px-3 py-2 text-xs font-semibold rounded-xl border transition-all';
+    if (key === nivel) {
+      cls.split(' ').forEach(c => btn.classList.add(c));
+    } else {
+      btn.classList.add('border-slate-200', 'text-slate-600');
+    }
+  });
+  applyFilters();
+}
+
+function changePage(dir) {
+  const totalPages = Math.max(1, Math.ceil(filteredData.length / PER_PAGE));
+  currentPage = Math.max(1, Math.min(currentPage + dir, totalPages));
+  renderTable();
+}
+
+// ── Charts ─────────────────────────────────────────────────────────────────
+function renderCharts(stats) {
+  const donutCtx = document.getElementById('donutChart').getContext('2d');
+  new Chart(donutCtx, {
+    type: 'doughnut',
+    data: {
+      labels: ['Alto', 'Médio', 'Baixo'],
+      datasets: [{
+        data: [stats.por_nivel.Alto, stats.por_nivel.Medio, stats.por_nivel.Baixo],
+        backgroundColor: ['#ef4444', '#f59e0b', '#10b981'],
+        borderWidth: 3,
+        borderColor: '#ffffff',
+        hoverOffset: 8,
+      }]
+    },
+    options: {
+      cutout: '70%',
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          callbacks: {
+            label: ctx => ` ${ctx.label}: ${ctx.parsed} alunos`
+          }
         }
+      },
+      maintainAspectRatio: false,
+    }
+  });
 
-        let linha = `
-            <tr>
-                <td>${aluno.Nome}</td>
-                <td>${aluno.Sobrenome}</td>
-                <td>${aluno.risco_percentual.toFixed(2)}%</td>
-                <td class="${classe}">${aluno.nivel}</td>
-                <td>${aluno.plano}</td>
-            </tr>
-        `;
+  const barCtx = document.getElementById('barChart').getContext('2d');
+  const top10  = stats.top10_risco;
+  new Chart(barCtx, {
+    type: 'bar',
+    data: {
+      labels: top10.map(a => a.Nome + ' ' + a.Sobrenome),
+      datasets: [{
+        label: 'Risco (%)',
+        data: top10.map(a => Number(a.risco_percentual).toFixed(1)),
+        backgroundColor: top10.map(a =>
+          a.risco_percentual >= 70 ? '#ef444490' : '#f59e0b90'),
+        borderColor: top10.map(a =>
+          a.risco_percentual >= 70 ? '#ef4444' : '#f59e0b'),
+        borderWidth: 1.5,
+        borderRadius: 6,
+        borderSkipped: false,
+      }]
+    },
+    options: {
+      indexAxis: 'y',
+      maintainAspectRatio: false,
+      plugins: { legend: { display: false } },
+      scales: {
+        x: {
+          min: 0, max: 100,
+          grid: { color: '#f1f5f9' },
+          ticks: { callback: v => v + '%', font: { size: 11 } }
+        },
+        y: {
+          grid: { display: false },
+          ticks: { font: { size: 11 } }
+        }
+      }
+    }
+  });
+}
 
-        tabela.innerHTML += linha;
+// ── KPI Cards ──────────────────────────────────────────────────────────────
+function renderCards(stats) {
+  const { total, por_nivel } = stats;
+  const pct = n => ((n / total) * 100).toFixed(1) + '% do total';
+
+  document.getElementById('card-total').textContent = total;
+  document.getElementById('card-alto').textContent  = por_nivel.Alto;
+  document.getElementById('card-medio').textContent = por_nivel.Medio;
+  document.getElementById('card-baixo').textContent = por_nivel.Baixo;
+  document.getElementById('pct-alto').textContent   = pct(por_nivel.Alto);
+  document.getElementById('pct-medio').textContent  = pct(por_nivel.Medio);
+  document.getElementById('pct-baixo').textContent  = pct(por_nivel.Baixo);
+
+  document.getElementById('stat-nota').textContent    = stats.media_nota;
+  document.getElementById('stat-presenca').textContent = stats.media_presenca + '%';
+  document.getElementById('stat-faltas').textContent  = stats.media_faltas;
+
+  const agora = new Date();
+  document.getElementById('ultima-atualizacao').textContent =
+    'Atualizado em ' + agora.toLocaleDateString('pt-BR') +
+    ' às ' + agora.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+}
+
+// ── Init ───────────────────────────────────────────────────────────────────
+const API = 'https://edupredict-pi-logistic-regression-bk75.onrender.com';
+
+async function init() {
+  try {
+    const [alunosRes, statsRes] = await Promise.all([
+      fetch(`${API}/alunos`),
+      fetch(`${API}/stats`)
+    ]);
+
+    if (!alunosRes.ok || !statsRes.ok) throw new Error('Erro ao carregar dados');
+
+    allData = await alunosRes.json();
+    const stats = await statsRes.json();
+
+    filteredData = [...allData];
+    renderCards(stats);
+    renderCharts(stats);
+    renderTable();
+
+    document.getElementById('busca').addEventListener('input', e => {
+      searchTerm = e.target.value;
+      applyFilters();
     });
 
-    // atualizar cards
-    document.getElementById("total").innerText = total;
-    document.getElementById("alto").innerText = alto;
-    document.getElementById("medio").innerText = medio;
-});
+  } catch (err) {
+    document.getElementById('tabela').innerHTML = `
+      <tr><td colspan="9" class="text-center py-16 text-red-500 text-sm">
+        <i class="fa-solid fa-circle-xmark text-2xl block mb-2"></i>
+        Erro ao carregar dados. Verifique se o servidor está rodando.
+      </td></tr>`;
+  }
+}
 
+init();
 </script>
 
 </body>
