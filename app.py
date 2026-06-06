@@ -1,17 +1,18 @@
-from flask import Flask, jsonify
+import os
+from flask import Flask, jsonify, send_from_directory
 from flask_cors import CORS
 import pandas as pd
 from sklearn.preprocessing import StandardScaler
 from sklearn.linear_model import LogisticRegression
 
-app = Flask(__name__)
+app = Flask(__name__, static_folder=".")
 CORS(app)
 
 # ----------------------------
 # CARREGAR DADOS
 # ----------------------------
 
-df = pd.read_excel("base_dados_alunos_2000.xlsx")
+df = pd.read_excel("base_dados_alunos.xlsx")
 
 # ----------------------------
 # CRIAR VARIÁVEL DE RISCO
@@ -103,6 +104,10 @@ df["plano"] = df.apply(plano, axis=1)
 # API
 # ----------------------------
 
+@app.route("/")
+def index():
+    return send_from_directory(".", "index.html")
+
 @app.route("/alunos")
 def alunos():
     return jsonify(df[[
@@ -118,4 +123,5 @@ def alunos():
 # ----------------------------
 
 if __name__ == "__main__":
-    app.run(debug=True)
+    port = int(os.environ.get("PORT", 5000))
+    app.run(host="0.0.0.0", port=port)
