@@ -1,4 +1,5 @@
 import os
+import math
 from flask import Flask, jsonify, send_from_directory
 from flask_cors import CORS
 import pandas as pd
@@ -137,8 +138,18 @@ df["professor_indicado"] = df.apply(professor_indicado, axis=1)
 def index():
     return send_from_directory(".", "index.html")
 
+def _clean(v):
+    if isinstance(v, float) and math.isnan(v):
+        return None
+    return v
+
 def to_safe_records(frame):
-    return frame.where(pd.notnull(frame), None).to_dict(orient="records")
+    return [{k: _clean(v) for k, v in row.items()}
+            for row in frame.to_dict(orient="records")]
+
+def safe_mean(series, decimals=1):
+    val = series.mean()
+    return round(float(val), decimals) if not math.isnan(val) else 0.0
 
 @app.route("/alunos")
 def alunos():
@@ -163,9 +174,9 @@ def stats():
             "Medio": int(contagem.get("Médio", 0)),
             "Baixo": int(contagem.get("Baixo", 0)),
         },
-        "media_nota": round(float(df["Nota"].mean()), 1),
-        "media_presenca": round(float(df["Percentual_Presenca"].mean()), 1),
-        "media_faltas": round(float(df["Faltas"].mean()), 1),
+        "media_nota": safe_mean(df["Nota"]),
+        "media_presenca": safe_mean(df["Percentual_Presenca"]),
+        "media_faltas": safe_mean(df["Faltas"]),
         "top10_risco": top10,
     })
 
